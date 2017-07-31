@@ -50,3 +50,15 @@ def pytest_runtest_teardown(item):
 @pytest.fixture
 def project_root():
     return os.path.dirname(os.path.abspath(__file__))
+
+
+@pytest.fixture
+def mytest_model():
+
+    from tests.contrib.django.models import MyTestModel
+    return MyTestModel
+
+
+@pytest.fixture(scope='function', autouse=False)
+def user_instance(request, admin_user):
+    request.cls.user = admin_user

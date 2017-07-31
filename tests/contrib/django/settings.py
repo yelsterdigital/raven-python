@@ -49,6 +49,13 @@ TEMPLATES = [{
 ALLOWED_HOSTS = ['*']
 
 # ---- CELERY SETTINGS ---- #
+
+try:
+    import djcelery  # NOQA
+    INSTALLED_APPS.append('djcelery')
+except ImportError:
+    pass
+
 BROKER_HOST = "localhost"
 BROKER_PORT = 5672
 BROKER_USER = "guest"

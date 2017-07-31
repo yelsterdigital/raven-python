@@ -79,7 +79,6 @@ tests_require = [
     'pytest-pythonpath',
     'pytest-sugar==0.8',
     'pytest-assume',
-    #'pytest-greendots',
     'requests',
     'tornado>=4.1',
     'webob',

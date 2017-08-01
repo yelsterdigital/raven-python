@@ -14,6 +14,16 @@ python:
   - "3.4"
   - "3.5"
   - "pypy"
+env:
+  - DJANGO="1.7"
+  - DJANGO="1.8"
+  - DJANGO="1.9"
+  - DJANGO="1.10"
+  - CELERY="3"
+  - CELERY="4"
+  - FLASK="10"
+  - FLASK="11"
+  - FLASK="12"
 
 matrix:
   fast_finish: true
@@ -25,7 +35,6 @@ install:
 before_script:
   - pip freeze
 script:
-  - if [[ ${TRAVIS_PYTHON_VERSION} != 'pypy' ]]; then make lint; fi
   - tox
 after_success:
   - codecov -e DJANGO

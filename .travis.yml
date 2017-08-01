@@ -15,9 +15,9 @@ python:
  # - "pypy"
 #env:
 #  - DJANGO="1.7"
-#  - DJANGO="1.8"
-#  - DJANGO="1.9"
-#  - DJANGO="1.10"
+  - DJANGO="1.8"
+  - DJANGO="1.9"
+  - DJANGO="1.10"
 #  - CELERY="3"
 #  - CELERY="4"
 #  - FLASK="10"

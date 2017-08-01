@@ -13,16 +13,16 @@ python:
   - "3.4"
   - "3.5"
  # - "pypy"
-env:
-  #- DJANGO="1.7"
-  - DJANGO="1.8"
-  - DJANGO="1.9"
-  - DJANGO="1.10"
-  #- CELERY="3"
-  #- CELERY="4"
-  #- FLASK="10"
-  #- FLASK="11"
-  #- FLASK="12"
+#env:
+#  - DJANGO="1.7"
+#  - DJANGO="1.8"
+#  - DJANGO="1.9"
+#  - DJANGO="1.10"
+#  - CELERY="3"
+#  - CELERY="4"
+#  - FLASK="10"
+#  - FLASK="11"
+#  - FLASK="12"
 
 matrix:
   fast_finish: true

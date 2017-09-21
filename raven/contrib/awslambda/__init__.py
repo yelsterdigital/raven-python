@@ -1,5 +1,5 @@
 """
-raven.contrib.lambda
+raven.contrib.awslambda
 ~~~~~~~~~~~~~~~~~~~~
 
 Raven wrapper for AWS Lambda handlers.
@@ -54,7 +54,7 @@ def make_client(config):
     )
 
 
-class Raven(object):
+class Sentry(object):
     """
     Raven decorator for AWS Lambda.
 
@@ -88,11 +88,10 @@ class Raven(object):
             return self(args[0])
         return self
 
-    def __init__(self, dsn=None, client=None, logging=True, breadcrumbs=True, **kwargs):
+    def __init__(self, dsn=None, client=None, logging=True, **kwargs):
 
         self.dsn = dsn
         self.logging = logging
-        self.breadcrumbs = breadcrumbs
         self.client = client or make_client(kwargs)
 
         if logging:
@@ -103,10 +102,11 @@ class Raven(object):
 
         @functools.wraps(fn)
         def decorated(event, context):
-
             self.client.extra_context({
                 'event': event,
-                'context': dict(context),
+                'aws_request_id': context.aws_request_id,
+                'client_context': context.client_context,
+                'identity': context.identity,
             })
             try:
                 return fn(event, context)
@@ -121,4 +121,4 @@ class Raven(object):
     def record_breadcrumb(*args, **kwargs):
         return breadcrumbs.record(*args, **kwargs)
 
-raven = Raven
+sentry = Sentry

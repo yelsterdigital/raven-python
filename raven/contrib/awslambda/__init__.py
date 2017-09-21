@@ -26,7 +26,7 @@ from raven.transport.http import HTTPTransport
 logger = logging.getLogger('sentry.errors.client')
 
 
-__all__ = 'sentry'
+__all__ = 'raven'
 
 
 def make_client(config):
@@ -54,7 +54,7 @@ def make_client(config):
     )
 
 
-class Sentry(object):
+class Raven(object):
     """
     Raven decorator for AWS Lambda.
 
@@ -73,15 +73,6 @@ class Sentry(object):
     If you want to add breadcrumbs, send messages or from within your handler,
     just add sentry to your function arguments:
 
-    >>> @sentry
-    >>> def handler(event, context, sentry):
-    >>>
-    >>>    ...
-    >>>
-    >>>    sentry.recordBreadcrumb("this is a breadcrumb", category='test', level='debug')
-    >>>
-    >>>    raise Exception('I will be sent to sentry!')
-
     You can add extra context by calling `sentry.addContext`
 
     >>> sentry.addContext({'foo': 'bar'})
@@ -98,6 +89,7 @@ class Sentry(object):
         return self
 
     def __init__(self, dsn=None, client=None, logging=True, breadcrumbs=True, **kwargs):
+
         self.dsn = dsn
         self.logging = logging
         self.breadcrumbs = breadcrumbs
@@ -117,14 +109,7 @@ class Sentry(object):
                 'context': dict(context),
             })
             try:
-                return fn(event, context, sentry=self)
-            except TypeError:
-                try:
-                    return fn(event, context)
-                except Exception as e:
-                    self.client.captureException()
-                    self.client.context.clear()
-                    raise e
+                return fn(event, context)
             except Exception as e:
                 self.client.captureException()
                 self.client.context.clear()
@@ -132,19 +117,8 @@ class Sentry(object):
 
         return decorated
 
-    def recordBreadcrumb(self, *args, **kwargs):
+    @staticmethod
+    def record_breadcrumb(*args, **kwargs):
         return breadcrumbs.record(*args, **kwargs)
 
-    def addContext(self, data, **kwargs):
-        return self.client.extra_context(data, **kwargs)
-
-    def captureMessage(self, *args, **kwargs):
-        assert self.client, 'captureMessage called before application configured'
-        return self.client.captureMessage(*args, **kwargs)
-
-    def captureException(self, *args, **kwargs):
-        assert self.client, 'captureException called before application configured'
-        return self.client.captureException(*args, **kwargs)
-
-
-sentry = Sentry
+raven = Raven

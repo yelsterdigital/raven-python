@@ -8,7 +8,7 @@ raven.transport.registry
 from __future__ import absolute_import
 
 # TODO(dcramer): we really should need to import all of these by default
-from raven.transport.eventlet import EventletHTTPTransport
+#from raven.transport.eventlet import EventletHTTPTransport
 from raven.transport.exceptions import DuplicateScheme
 from raven.transport.http import HTTPTransport
 from raven.transport.gevent import GeventedHTTPTransport
@@ -71,5 +71,5 @@ default_transports = [
     RequestsHTTPTransport,
     ThreadedRequestsHTTPTransport,
     TornadoHTTPTransport,
-    EventletHTTPTransport,
+#    EventletHTTPTransport,
 ]

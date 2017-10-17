@@ -10,7 +10,7 @@ raven.transport
 from __future__ import absolute_import
 
 from raven.transport.base import *  # NOQA
-from raven.transport.eventlet import *  # NOQA
+#from raven.transport.eventlet import *  # NOQA
 from raven.transport.exceptions import *  # NOQA
 from raven.transport.gevent import *  # NOQA
 from raven.transport.http import *  # NOQA

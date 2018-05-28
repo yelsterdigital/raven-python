@@ -26,7 +26,12 @@ RESERVED = frozenset((
 ))
 
 
-def extract_extra(record, reserved=RESERVED):
+CONTEXTUAL = frozenset((
+    'user', 'culprit', 'server_name', 'fingerprint'
+))
+
+
+def extract_extra(record, reserved=RESERVED, contextual=CONTEXTUAL):
     data = {}
 
     extra = getattr(record, 'data', None)
@@ -35,13 +40,16 @@ def extract_extra(record, reserved=RESERVED):
             extra = {'data': extra}
         else:
             extra = {}
+    else:
+        # record.data may be something we don't want to mutate to not cause unexpected side effects
+        extra = dict(extra)
 
     for k, v in iteritems(vars(record)):
         if k in reserved:
             continue
         if k.startswith('_'):
             continue
-        if '.' not in k and k not in ('culprit', 'server_name', 'fingerprint'):
+        if '.' not in k and k not in contextual:
             extra[k] = v
         else:
             data[k] = v

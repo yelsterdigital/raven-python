@@ -1,10 +1,18 @@
 Pyramid
 =======
 
+Installation
+------------
+
+If you haven't already, start by downloading Raven. The easiest way is
+with *pip*::
+
+	pip install raven --upgrade
+
 PasteDeploy Filter
 ------------------
 
-A filter factory for `PasteDeploy <http://pythonpaste.org/deploy/>`_ exists to allow easily inserting Raven into a WSGI pipeline:
+A filter factory for `PasteDeploy <https://pastedeploy.readthedocs.io/en/latest/>`_ exists to allow easily inserting Raven into a WSGI pipeline:
 
 .. code-block:: ini
 

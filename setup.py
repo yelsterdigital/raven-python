@@ -46,42 +46,54 @@ flask_tests_requires = [
     'Flask-Login>=0.2.0',
 ]
 
+sanic_requires = []
+sanic_tests_requires = []
+
 webpy_tests_requires = [
     'paste',
     'web.py',
 ]
 
-# If it's python3, remove unittest2 & web.py
+# If it's python3, remove unittest2 & web.py.
 if sys.version_info[0] == 3:
     unittest2_requires = []
     webpy_tests_requires = []
 
+# If it's Python 3.5+, add Sanic packages.
+if sys.version_info >= (3, 5):
+    sanic_requires = [
+        'blinker>=1.1',
+        'sanic>=0.7.0',
+    ]
+    sanic_tests_requires = ['aiohttp', ]
+
 tests_require = [
     'bottle',
     'celery>=2.5',
+    'coverage<4',
     'exam>=0.5.2',
-    'flake8==3.4.1',
+    'flake8==3.5.0',
     'logbook',
     'mock',
     'nose',
-    'pycodestyle',
     'pytz',
     'pytest>=3.2.0,<3.3.0',
-    'pytest-timeout==1.2.0',
+    'pytest-timeout==1.2.1',
     'pytest-xdist==1.18.2',
-    'pytest-pythonpath==0.7.1',
-    'pytest-sugar==0.8',
-    'pytest-assume',
-    'pytest-cov',
-    'pytest-flake8',
+    'pytest-pythonpath==0.7.2',
+    'pytest-cov==2.5.1',
+    'pytest-flake8==1.0.0',
     'requests',
-    'tornado>=4.1',
+    'tornado>=4.1,<5.0',
+    'tox',
     'webob',
     'webtest',
+    'wheel',
     'anyjson',
     'ZConfig',
 ] + (
     flask_requires + flask_tests_requires +
+    sanic_requires + sanic_tests_requires +
     unittest2_requires + webpy_tests_requires
 )
 

@@ -67,10 +67,7 @@ if sys.version_info >= (3, 2):
 
 
 def get_excepthook_client():
-    hook = sys.excepthook
-    client = getattr(hook, 'raven_client', None)
-    if client is not None:
-        return client
+    return getattr(sys.excepthook, 'raven_client', None)
 
 
 class ModuleProxyCache(dict):
@@ -175,7 +172,9 @@ class Client(object):
 
         self.include_paths = set(o.get('include_paths') or [])
         self.exclude_paths = set(o.get('exclude_paths') or [])
-        self.name = text_type(o.get('name') or o.get('machine') or defaults.NAME)
+        self.name = text_type(
+            o.get('name') or os.environ.get('SENTRY_NAME') or
+            o.get('machine') or defaults.NAME)
         self.auto_log_stacks = bool(
             o.get('auto_log_stacks') or defaults.AUTO_LOG_STACKS)
         self.capture_locals = bool(
@@ -187,6 +186,7 @@ class Client(object):
         self.site = o.get('site')
         self.include_versions = o.get('include_versions', True)
         self.processors = o.get('processors')
+        self.sanitize_keys = o.get('sanitize_keys')
         if self.processors is None:
             self.processors = defaults.PROCESSORS
 
@@ -195,8 +195,11 @@ class Client(object):
             context = {'sys.argv': getattr(sys, 'argv', [])[:]}
         self.extra = context
         self.tags = o.get('tags') or {}
-        self.environment = o.get('environment') or None
-        self.release = o.get('release') or os.environ.get('HEROKU_SLUG_COMMIT')
+        self.environment = (
+            o.get('environment') or os.environ.get('SENTRY_ENVIRONMENT', None))
+        self.release = (
+            o.get('release') or os.environ.get('SENTRY_RELEASE') or
+            os.environ.get('HEROKU_SLUG_COMMIT'))
         self.repos = self._format_repos(o.get('repos'))
         self.sample_rate = (
             o.get('sample_rate')
@@ -235,14 +238,13 @@ class Client(object):
         self.hook_libraries(hook_libraries)
 
     def _format_repos(self, value):
-        if not value:
-            return {}
         result = {}
-        for path, config in iteritems(value):
-            if path[0] != '/':
-                # assume its a module
-                path = os.path.abspath(__import__(path).__file__)
-            result[path] = config
+        if value:
+            for path, config in iteritems(value):
+                if path[0] != '/':
+                    # assume its a module
+                    path = os.path.abspath(__import__(path).__file__)
+                result[path] = config
         return result
 
     def set_dsn(self, dsn=None, transport=None):
@@ -333,18 +335,17 @@ class Client(object):
         >>> # Specify a scheme to use (http or https)
         >>> print client.get_public_dsn('https')
         """
-        if not self.is_enabled():
-            return
-        url = self.remote.get_public_dsn()
-        if not scheme:
+        if self.is_enabled():
+            url = self.remote.get_public_dsn()
+            if scheme:
+                return '%s:%s' % (scheme, url)
+
             return url
-        return '%s:%s' % (scheme, url)
 
     def _get_exception_key(self, exc_info):
         # On certain celery versions the tb_frame attribute might
         # not exist or be `None`.
-        code_id = 0
-        last_id = 0
+        code_id = last_id = 0
         try:
             code_id = id(exc_info[2] and exc_info[2].tb_frame.f_code)
             last_id = exc_info[2] and exc_info[2].tb_lasti or 0
@@ -438,8 +439,9 @@ class Client(object):
                         not any(path.startswith(x) for x in self.exclude_paths)
                     )
 
+        transaction = None
         if not culprit:
-            culprit = self.transaction.peek()
+            transaction = self.transaction.peek()
 
         if not data.get('level'):
             data['level'] = kwargs.get('level') or logging.ERROR
@@ -464,7 +466,9 @@ class Client(object):
         if site:
             data['tags'].setdefault('site', site)
 
-        if culprit:
+        if transaction:
+            data['transaction'] = transaction
+        elif culprit:
             data['culprit'] = culprit
 
         if fingerprint:
@@ -502,7 +506,9 @@ class Client(object):
                 # raven client internally in sentry and the alternative
                 # submission option of a list here is not supported by the
                 # internal sender.
-                data.setdefault('breadcrumbs', {'values': crumbs})
+                data.setdefault('breadcrumbs', {
+                    'values': crumbs
+                })
 
         return data
 
@@ -617,7 +623,7 @@ class Client(object):
         :param stack: a stacktrace for the event
         :param tags: dict of extra tags
         :param sample_rate: a float in the range [0, 1] to sample this message
-        :return: a tuple with a 32-length string identifying this event
+        :return: a 32-length string identifying this event
         """
         if not self.is_enabled():
             return
@@ -825,15 +831,11 @@ class Client(object):
         wildcard_exclusions = (e for e in string_exclusions if e.endswith('*'))
         class_exclusions = (e for e in exclusions if isclass(e))
 
-        if exc_type in exclusions:
-            return False
-        elif exc_type.__name__ in exclusions:
-            return False
-        elif exc_name in exclusions:
-            return False
-        elif any(issubclass(exc_type, e) for e in class_exclusions):
-            return False
-        elif any(exc_name.startswith(e[:-1]) for e in wildcard_exclusions):
+        if (exc_type in exclusions
+                or exc_type.__name__ in exclusions
+                or exc_name in exclusions
+                or any(issubclass(exc_type, e) for e in class_exclusions)
+                or any(exc_name.startswith(e[:-1]) for e in wildcard_exclusions)):
             return False
         return True
 

@@ -9,9 +9,13 @@ raven.utils.json
 from __future__ import absolute_import
 
 import codecs
+import collections
 import datetime
 import uuid
 import json
+
+from .basic import is_namedtuple
+
 
 try:
     JSONDecodeError = json.JSONDecodeError
@@ -25,17 +29,25 @@ class BetterJSONEncoder(json.JSONEncoder):
         datetime.datetime: lambda o: o.strftime('%Y-%m-%dT%H:%M:%SZ'),
         set: list,
         frozenset: list,
-        bytes: lambda o: o.decode('utf-8', errors='replace')
+        bytes: lambda o: o.decode('utf-8', errors='replace'),
+        collections.namedtuple: lambda o: o._asdict(),
     }
 
     def default(self, obj):
+        obj_type = type(obj)
+        if obj_type not in self.ENCODER_BY_TYPE and is_namedtuple(obj):
+            obj_type = collections.namedtuple
+
         try:
-            encoder = self.ENCODER_BY_TYPE[type(obj)]
+            encoder = self.ENCODER_BY_TYPE[obj_type]
         except KeyError:
             try:
                 return super(BetterJSONEncoder, self).default(obj)
-            except TypeError:
-                return repr(obj)
+            except Exception:
+                try:
+                    return repr(obj)
+                except Exception:
+                    return object.__repr__(obj)
         return encoder(obj)
 
 
@@ -97,17 +109,16 @@ class StreamReader(Codec, codecs.StreamReader):
 
 
 def getregentry(name):
-    if name != 'safe-utf-8':
-        return None
-    return codecs.CodecInfo(
-        name='safe-utf-8',
-        encode=safe_encode,
-        decode=safe_decode,
-        incrementalencoder=IncrementalEncoder,
-        incrementaldecoder=IncrementalDecoder,
-        streamreader=StreamReader,
-        streamwriter=StreamWriter,
-    )
+    if name == 'safe-utf-8':
+        return codecs.CodecInfo(
+            name=name,
+            encode=safe_encode,
+            decode=safe_decode,
+            incrementalencoder=IncrementalEncoder,
+            incrementaldecoder=IncrementalDecoder,
+            streamreader=StreamReader,
+            streamwriter=StreamWriter,
+        )
 
 
 codecs.register(getregentry)

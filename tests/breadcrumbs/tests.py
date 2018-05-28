@@ -9,6 +9,11 @@ from raven import breadcrumbs
 from io import StringIO
 
 
+class DummyClass(object):
+    def dummy_method(self):
+        pass
+
+
 class BreadcrumbTestCase(TestCase):
 
     def test_crumb_buffer(self):
@@ -33,6 +38,16 @@ class BreadcrumbTestCase(TestCase):
         assert crumbs[0]['category'] == 'whatever.foo'
         assert crumbs[0]['data'] == {'blah': 'baz'}
         assert crumbs[0]['message'] == 'This is a message with foo!'
+
+    def test_log_crumb_reporting_with_large_message(self):
+        client = Client('http://foo:bar@example.com/0')
+        with client.context:
+            log = logging.getLogger('whatever.foo')
+            log.info('a' * 4096)
+            crumbs = client.context.breadcrumbs.get_buffer()
+
+        assert len(crumbs) == 1
+        assert crumbs[0]['message'] == 'a' * 1024
 
     def test_log_location(self):
         out = StringIO()
@@ -153,3 +168,28 @@ class BreadcrumbTestCase(TestCase):
             logger.debug('aha!')
             crumbs = client.context.breadcrumbs.get_buffer()
             assert len(crumbs) == 0
+
+    def test_hook_libraries(self):
+
+        @breadcrumbs.libraryhook('dummy')
+        def _install_func():
+            old_func = DummyClass.dummy_method
+
+            def new_func(self):
+                breadcrumbs.record(type='dummy', category='dummy', message="Dummy message")
+                old_func(self)
+
+            DummyClass.dummy_method = new_func
+
+        client = Client('http://foo:bar@example.com/0', hook_libraries=['requests'])
+        with client.context:
+            DummyClass().dummy_method()
+            crumbs = client.context.breadcrumbs.get_buffer()
+            assert 'dummy' not in set([i['type'] for i in crumbs])
+
+        client = Client('http://foo:bar@example.com/0', hook_libraries=['requests', 'dummy'])
+        with client.context:
+            DummyClass().dummy_method()
+            crumbs = client.context.breadcrumbs.get_buffer()
+            assert 'dummy' in set([i['type'] for i in crumbs])
+

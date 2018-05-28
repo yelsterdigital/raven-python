@@ -12,6 +12,7 @@ from __future__ import absolute_import
 import time
 import logging
 
+from django import VERSION as DJANGO_VERSION
 from django.conf import settings
 from django.core.exceptions import SuspiciousOperation
 from django.http import HttpRequest
@@ -35,6 +36,14 @@ from raven.utils import once
 from raven import breadcrumbs
 
 __all__ = ('DjangoClient',)
+
+
+if DJANGO_VERSION < (1, 10):
+    def is_authenticated(request_user):
+        return request_user.is_authenticated()
+else:
+    def is_authenticated(request_user):
+        return request_user.is_authenticated
 
 
 class _FormatConverter(object):
@@ -74,6 +83,23 @@ def format_sql(sql, params):
     return sql, rv
 
 
+def record_sql(vendor, alias, start, duration, sql, params):
+    def processor(data):
+        real_sql, real_params = format_sql(sql, params)
+        if real_params:
+            try:
+                real_sql = real_sql % tuple(real_params)
+            except TypeError:
+                pass
+        # maybe category to 'django.%s.%s' % (vendor, alias or
+        #   'default') ?
+        data.update({
+            'message': real_sql,
+            'category': 'query',
+        })
+    breadcrumbs.record(processor=processor)
+
+
 @once
 def install_sql_hook():
     """If installed this causes Django's queries to be captured."""
@@ -89,19 +115,6 @@ def install_sql_hook():
         # XXX(mitsuhiko): On some very old django versions (<1.6) this
         # trickery would have to look different but I can't be bothered.
         return
-
-    def record_sql(vendor, alias, start, duration, sql, params):
-        def processor(data):
-            real_sql, real_params = format_sql(sql, params)
-            if real_params:
-                real_sql = real_sql % tuple(real_params)
-            # maybe category to 'django.%s.%s' % (vendor, alias or
-            #   'default') ?
-            data.update({
-                'message': real_sql,
-                'category': 'query',
-            })
-        breadcrumbs.record(processor=processor)
 
     def record_many_sql(vendor, alias, start, sql, param_list):
         duration = time.time() - start
@@ -152,15 +165,9 @@ class DjangoClient(Client):
             return user_info
 
         try:
-            if hasattr(user, 'is_authenticated'):
-                # is_authenticated was a method in Django < 1.10
-                if callable(user.is_authenticated):
-                    authenticated = user.is_authenticated()
-                else:
-                    authenticated = user.is_authenticated
-                if not authenticated:
-                    return user_info
-
+            authenticated = is_authenticated(user)
+            if not authenticated:
+                return user_info
             user_info['id'] = user.pk
 
             if hasattr(user, 'email'):

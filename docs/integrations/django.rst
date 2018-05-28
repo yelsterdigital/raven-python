@@ -5,6 +5,14 @@ Django
 
 `Django <http://djangoproject.com/>`_ version 1.4 and newer are supported.
 
+Installation
+------------
+
+If you haven't already, start by downloading Raven. The easiest way is
+with *pip*::
+
+	pip install raven --upgrade
+
 Setup
 -----
 
@@ -28,7 +36,7 @@ Additional settings for the client are configured using the
         'dsn': '___DSN___',
         # If you are using git, you can also automatically configure the
         # release based on the git info.
-        'release': raven.fetch_git_sha(os.path.dirname(os.pardir)),
+        'release': raven.fetch_git_sha(os.path.abspath(os.pardir)),
     }
 
 Once you've configured the client, you can test it using the standard Django
@@ -149,7 +157,7 @@ do this, you simply need to enable a Django middleware:
         ...,
     ) + MIDDLEWARE
 
-It is recommended to put the middleware at the top, so that any only 404s
+It is recommended to put the middleware at the top, so that only 404s
 that bubbled all the way up get logged. Certain middlewares (e.g. flatpages)
 capture 404s and replace the response.
 

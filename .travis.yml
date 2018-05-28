@@ -11,7 +11,6 @@ branches:
   only:
     - master
     - /^(?i:feature)-.*$/
-
 jobs:
   fast_finish: true
 #  allow_failures:
@@ -23,14 +22,14 @@ jobs:
       python: 2.7
       env: TOXENV=py27
     - stage: core
-      python: 3.3
-      env: TOXENV=py33
-    - stage: core
       python: 3.4
       env: TOXENV=py34
     - stage: core
       python: 3.5
       env: TOXENV=py35
+    - stage: core
+      python: 3.6
+      env: TOXENV=py36
     - stage: core
       python: pypy
       env: TOXENV=pypy
@@ -54,14 +53,6 @@ jobs:
     - stage: contrib
       python: 2.7
       env: TOXENV=py27-django-110
-
-
-    - stage: contrib
-      python: 3.3
-      env: TOXENV=py33-django-17
-    - stage: contrib
-      python: 3.3
-      env: TOXENV=py33-django-18
 
     - stage: contrib
       python: 3.4
@@ -88,6 +79,9 @@ jobs:
     - stage: contrib
       python: 3.5
       env: TOXENV=py35-django-111-fix
+    - stage: contrib
+      python: 3.5
+      env: TOXENV=py35-django-200-fix
 #    - stage: contrib
 #      python: 3.5
 #      env: TOXENV=py35-django-dev-fix
@@ -123,24 +117,37 @@ jobs:
       python: 3.6
       env: TOXENV=py36-lambda
 
-#    - stage: deploy
-#      script: skip
-#      deploy:
-#        provider: pypi
-#        user: sentry
-#        distributions: "sdist--formats=gztar bdist_wheel"
-#        on:
-#          tags: true
-#          repo: getsentry/raven-python
-#        password:
-#          secure: cG4yO9C+42ljfMlCfIJEgmySUPDCmGht358UaaCum4qchpVaFrjPAvm2sUpr3cFhUmMH+ueUr7LBW2c+lriJyT7wwJlU7vwtECzr5aayUuSwwPpFu98lz8kwQny3KF2caMD15rbjXkDRjh1QXw4ztiuBZq9dLb5WDx3pIKVLLbQ=
+    - stage: contrib
+      python: 3.5
+      env: TOXENV=py35-sanic-07
+
+    - stage: contrib
+      python: 3.6
+      env: TOXENV=py36-sanic-07
+
+      #- stage: deploy
+      # script: ./setup.py sdist --formats=gztar bdist_wheel
+      #if: branch = master
+      #python: 2.7
+      #after_success:
+      #  - npm install -g @zeus-ci/cli
+      #  - zeus upload -t "application/zip+wheel" dist/*
 
 script: tox
 install:
-  - pip install tox wheel codecov "coverage<4"
+  - make
+  - pip install codecov
 before_script:
   - pip freeze
 after_success:
   - codecov -e DJANGO
 
-
+notifications:
+  webhooks:
+    urls:
+      - https://zeus.ci/hooks/0b589ca4-1165-11e8-b03b-0a580a28023f/public/provider/travis/webhook
+    on_success: always
+    on_failure: always
+    on_start: always
+    on_cancel: always
+    on_error: always
